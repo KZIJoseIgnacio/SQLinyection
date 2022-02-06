@@ -22,7 +22,7 @@ Por último, vamos a utilizar la cláusula where; así es como podemos seleccion
 ```
 select * from users where username='admin';
 ```
-![General] https://github.com/KZIJoseIgnacio/SQLinyection/blob/main/Captura%20de%20pantalla%202022-02-06%20183556.png
+![General] (https://github.com/KZIJoseIgnacio/SQLinyection/blob/main/Captura%20de%20pantalla%202022-02-06%20183556.png)
 
 
 ### Select
