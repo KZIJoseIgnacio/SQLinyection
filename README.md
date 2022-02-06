@@ -123,3 +123,79 @@ select * from users where username='' and password='' OR 1=1;
 ```
 Debido a que 1=1 es una declaración verdadera y hemos usado un  operador OR  , esto siempre hará que la consulta regrese como verdadera, lo que satisface la lógica de las aplicaciones web de que la base de datos encontró una combinación válida de nombre de usuario/contraseña y que se debe permitir el acceso .
 
+
+### Blind SQLi - Boolean Based
+
+La inyección SQL basada en booleanos se refiere a la respuesta que recibimos de nuestros intentos de inyección, que podría ser verdadero/falso, sí/no, activado/desactivado, 1/0 o cualquier respuesta que solo pueda tener dos resultados. Ese resultado nos confirma que nuestra carga útil de SQL Injection fue exitosa o no. En la primera inspección, puede sentir que esta respuesta limitada no puede proporcionar mucha información. Aún así, de hecho, con solo estas dos respuestas, es posible enumerar la estructura y el contenido de una base de datos completa.
+
+Al igual que anteriormente nuestra primera tareas es encontrar el error sql, luego procedemos a evitar el error encontrando el numero de columnas. 
+```
+admin123' UNION SELECT 1,2,3;-- 
+```
+Ahora que se ha establecido nuestro número de columnas, podemos trabajar en la enumeración de la base de datos. Nuestra primera tarea es descubrir el nombre de la base de datos. Podemos hacer esto usando el método integrado de la base de  datos()  y luego usando el  operador like  para tratar de encontrar resultados que devuelvan un estado verdadero.
+
+Pruebe el siguiente valor de nombre de usuario y vea qué sucede:
+```
+admin123' UNION SELECT 1,2,3 where database() like '%';--
+```
+
+Obtenemos una respuesta verdadera porque, en el operador like, solo tenemos el valor de  % , que coincidirá con cualquier cosa, ya que es el valor comodín. Si cambiamos el operador comodín a  a% , verá que la respuesta vuelve a ser falsa, lo que confirma que el nombre de la base de datos no comienza con la letra  a . Podemos recorrer todas las letras, números y caracteres como - y _ hasta que descubramos una coincidencia. Si envía lo siguiente como valor de nombre de usuario, recibirá una  respuesta verdadera  que confirma que el nombre de la base de datos comienza con la letra  s .
+```
+admin123' UNION SELECT 1,2,3 where database() like 's%';--
+```
+Ahora pasa al siguiente carácter del nombre de la base de datos hasta que encuentre otra  respuesta verdadera  , por ejemplo, 'sa%', 'sb%', 'sc%', etc. Continúe con este proceso hasta que descubra todos los caracteres del nombre de la base de datos, que es  sqli_tres .
+
+Hemos establecido el nombre de la base de datos, que ahora podemos usar para enumerar los nombres de las tablas usando un método similar utilizando la base de datos information_schema. Intente configurar el nombre de usuario en el siguiente valor:
+
+```
+admin123' UNION SELECT 1,2,3 FROM information_schema.tables WHERE table_schema = 'sqli_three' and table_name like 'a%';--
+```
+Esta consulta busca resultados en la  base de datos information_schema  en la  tabla de tablas  donde el nombre de la base de datos coincide con  sqli_tres y el nombre de la tabla comienza con la letra a. Como la consulta anterior da como resultado una  respuesta falsa  , podemos confirmar que no hay tablas en la base de datos sqli_tres que comiencen con la letra a. Al igual que antes, deberá recorrer letras, números y caracteres hasta que encuentre una coincidencia positiva.
+
+Finalmente, terminará descubriendo una tabla en la base de datos sqli_tres con el nombre de usuarios, que puede confirmar ejecutando la siguiente carga de nombre de usuario:
+
+```
+admin123' UNION SELECT 1,2,3 FROM information_schema.tables WHERE table_schema = 'sqli_three' and table_name='users';--
+```
+
+Por último, ahora necesitamos enumerar los nombres de las columnas en la  tabla de usuarios  para que podamos buscar correctamente las credenciales de inicio de sesión. Nuevamente, usando la base de datos information_schema y la información que ya obtuvimos, podemos comenzar a consultar los nombres de las columnas. Usando la carga útil a continuación, buscamos en la  tabla de columnas  donde la base de datos es igual a sqli_tres, el nombre de la tabla es usuarios y el nombre de la columna comienza con la letra a.
+```
+admin123' UNION SELECT 1,2,3 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='sqli_three' and TABLE_NAME='users' and COLUMN_NAME like 'a%';
+```
+Una vez más, deberá recorrer las letras, los números y los caracteres hasta que encuentre una coincidencia. Como está buscando múltiples resultados, tendrá que agregar esto a su carga útil cada vez que encuentre un nuevo nombre de columna, para que no siga descubriendo el mismo. Por ejemplo, una vez que haya encontrado la columna llamada  id , la agregará a su carga útil original (como se ve a continuación).
+
+```
+admin123' UNION SELECT 1,2,3 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='sqli_three' and TABLE_NAME='users' and COLUMN_NAME like 'a%' and COLUMN_NAME !='id';
+```
+
+Repetir este proceso tres veces le permitirá descubrir las columnas id, nombre de usuario y contraseña. Que ahora puede usar para consultar la  tabla de usuarios  para las credenciales de inicio de sesión. Primero, deberá descubrir un nombre de usuario válido que pueda usar en la carga útil a continuación:
+```
+admin123' UNION SELECT 1,2,3 from users where username like 'a%
+```
+
+Lo cual, una vez que haya recorrido todos los caracteres, confirmará la existencia del nombre de usuario  admin . Ahora tienes el nombre de usuario. Puede concentrarse en descubrir la contraseña. La siguiente carga útil le muestra cómo encontrar la contraseña:
+
+```
+admin123' UNION SELECT 1,2,3 from users where username='admin' and password like 'a%
+```
+Recorriendo todos los caracteres, descubrirá que la contraseña es 3845.
+
+
+### Blind SQLi - Time Based
+Una inyección de SQL ciega basada en el tiempo es muy similar a la anterior basada en booleanos, en el sentido de que se envían las mismas solicitudes, pero no hay un indicador visual de que sus consultas sean correctas o incorrectas esta vez. En cambio, su indicador de una consulta correcta se basa en el tiempo que tarda en completarse la consulta. Este retraso de tiempo se introduce mediante el uso de métodos integrados como  SLEEP(x)  junto con la instrucción UNION. El método SLEEP() solo se ejecutará con una declaración UNION SELECT exitosa. 
+
+Entonces, por ejemplo, al intentar establecer el número de columnas en una tabla, usaría la siguiente consulta.
+```
+admin123' UNION SELECT SLEEP(5);--
+```
+Si no hubo pausa en el tiempo de respuesta, sabemos que la consulta no tuvo éxito, por lo que, como en las tareas anteriores, agregamos otra columna:
+```
+admin123' UNION SELECT SLEEP(5),2;--
+```
+Esta carga útil debería haber producido un retraso de 5 segundos, lo que confirma la ejecución exitosa de la declaración UNION y que hay dos columnas.
+Ahora puede repetir el proceso de enumeración desde la inyección de SQL basada en booleanos, agregando el   método  SLEEP() en la instrucción UNION SELECT.
+
+Si tiene dificultades para encontrar el nombre de la tabla, la siguiente consulta debería ayudarlo en su camino:
+```
+referrer=admin123' UNION SELECT SLEEP(5),2 where database() like 'u%';
+```
