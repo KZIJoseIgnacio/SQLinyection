@@ -22,7 +22,6 @@ Por último, vamos a utilizar la cláusula where; así es como podemos seleccion
 ```
 select * from users where username='admin';
 ```
-(https://github.com/KZIJoseIgnacio/SQLinyection/blob/main/Captura%20de%20pantalla%202022-02-06%20183556.png)
-
+![General](https://user-images.githubusercontent.com/67438760/126847865-92514f2c-7dc9-4296-91a1-44840a7c99e3.png)
 
 ### Select
