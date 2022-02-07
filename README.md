@@ -199,3 +199,17 @@ Si tiene dificultades para encontrar el nombre de la tabla, la siguiente consult
 ```
 referrer=admin123' UNION SELECT SLEEP(5),2 where database() like 'u%';
 ```
+
+### Out-of-Band SQLi
+La inyección de SQL fuera de banda no es tan común, ya que depende de funciones específicas habilitadas en el servidor de la base de datos o de la lógica empresarial de la aplicación web, que realiza algún tipo de llamada de red externa basada en los resultados de una consulta SQL.
+
+Un ataque fuera de banda se clasifica por tener dos canales de comunicación diferentes, uno para lanzar el ataque y otro para recopilar los resultados. Por ejemplo, el canal de ataque podría ser una solicitud web y el canal de recopilación de datos podría estar monitoreando las solicitudes HTTP/DNS realizadas a un servicio que usted controla.
+
+1) Un atacante realiza una solicitud a un sitio web vulnerable a SQL Injection con una carga útil de inyección.
+
+2) El sitio web realiza una consulta SQL a la base de datos que también transmite la carga útil del hacker.
+
+3) La carga útil contiene una solicitud que fuerza una solicitud HTTP de regreso a la máquina del pirata informático que contiene datos de la base de datos.
+
+![image](https://user-images.githubusercontent.com/69023634/152707792-f1129d17-b685-4c65-85bb-b248f7929483.png)
+
